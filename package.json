@@ -1,0 +1,9 @@
+{
+  "private": true,
+  "workspaces": [
+    "functions"
+  ],
+  "devDependencies": {
+    "firebase-tools": "^11.5.0"
+  }
+}
