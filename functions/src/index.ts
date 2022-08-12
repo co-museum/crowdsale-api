@@ -1,13 +1,15 @@
-import functions from "firebase-functions";
+import * as functions from "firebase-functions";
+import * as handlers from "./handlers";
 import express from "express";
-
-// Start writing Firebase Functions
-// https://firebase.google.com/docs/functions/typescript
+import {initializeApp} from "firebase-admin/app";
 
 const app = express();
+app.use(express.json());
+initializeApp();
 
-app.get("/", (_, res) => res.status(200).send("Hey there!"));
+app.put("/admin/whitelist/:batch/:whitelist", handlers.addWhitelist);
+// app.patch("/admin/whitelist/:batch/:whitelist", handlers.addWhitelist);
 
-exports.app = functions
+export const api = functions
     .region("asia-southeast1") // comma separated string to multiple regions
     .https.onRequest(app);
