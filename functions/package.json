@@ -22,6 +22,7 @@
     "firebase-admin": "^10.0.2",
     "firebase-functions": "^3.18.0",
     "http-status-codes": "^2.2.0",
+    "lodash": "^4.17.21",
     "runtypes": "^6.6.0"
   },
   "devDependencies": {
@@ -31,7 +32,8 @@
     "eslint-config-google": "^0.14.0",
     "eslint-plugin-import": "^2.25.4",
     "firebase-functions-test": "^0.2.0",
-    "typescript": "^4.5.4"
+    "typescript": "^4.5.4",
+    "typescript-language-server": "^1.0.0"
   },
   "private": true
 }
