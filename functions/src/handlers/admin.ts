@@ -80,13 +80,16 @@ function validateAddresses(handler: Handler, addresses: string[], res: Response)
  * Admin handler class
  */
 export class Admin {
-  db: Firestore;
   /**
    * Dependency injection point
    * @param {Firestore} db firestore instance
    */
-  constructor(db: Firestore) {
-    this.db = db;
+  constructor(public db: Firestore) {
+    // NOTE: make sure that `this` stays bound to the object when passed as a handler
+    this.addWhitelist = this.addWhitelist.bind(this);
+    this.removeWhitelist = this.removeWhitelist.bind(this);
+    this.addAddresses = this.addAddresses.bind(this);
+    this.removeAddresses = this.removeAddresses.bind(this);
   }
 
   /**

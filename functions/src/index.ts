@@ -11,10 +11,10 @@ initializeApp();
 const db = getFirestore();
 const admin = new Admin(db);
 
-app.put("/admin/whitelist/:batch/:whitelist", admin.addWhitelist.bind(admin));
-app.delete("/admin/whitelist/:batch/:whitelist", admin.removeWhitelist.bind(admin));
-app.put("/admin/address/:batch/:whitelist", admin.addAddresses.bind(admin));
-app.delete("/admin/address/:batch/:whitelist", admin.removeAddresses.bind(admin));
+app.put("/admin/whitelist/:batch/:whitelist", admin.addWhitelist);
+app.delete("/admin/whitelist/:batch/:whitelist", admin.removeWhitelist);
+app.put("/admin/address/:batch/:whitelist", admin.addAddresses);
+app.delete("/admin/address/:batch/:whitelist", admin.removeAddresses);
 
 export const api = functions
     .region("asia-southeast1") // comma separated string to multiple regions
