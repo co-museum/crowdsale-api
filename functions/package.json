@@ -24,6 +24,7 @@
     "firebase-functions": "^3.18.0",
     "http-status-codes": "^2.2.0",
     "lodash": "^4.17.21",
+    "merkletreejs": "^0.2.32",
     "runtypes": "^6.6.0"
   },
   "devDependencies": {
