@@ -1,17 +1,17 @@
-import * as logger from "firebase-functions/lib/logger";
-import {Record, Number, String, Array, Static} from "runtypes";
+import {Record, String, Static} from "runtypes";
 import {Request, Response} from "express";
 import {Firestore} from "firebase-admin/firestore";
-import {StatusCodes} from "http-status-codes";
+import {StatusCodes, ReasonPhrases} from "http-status-codes";
 import {ethers} from "ethers";
 import MerkleTree from "merkletreejs";
 import {keccak256} from "ethers/lib/utils";
-import {Addresses, Proof, Sale, Whitelist} from "./types";
+import {Addresses, Proof, Sale, Whitelist, Error} from "./types";
 import {log, validateAddresses} from "./utils";
 import {saleCollection, saleDoc} from "./constants";
 
 enum Handler {
-  getProof = "getProof",
+  GetProof = "getProof",
+  GetSale = "getSale",
 }
 
 const Params = Record({
@@ -37,44 +37,61 @@ export class Client {
       res: Response<Proof | Error>
   ) {
     try {
-      log({handler: Handler.getProof, body: req.body, params: req.params});
+      log({handler: Handler.GetProof, body: req.body, params: req.params});
       Params.check(req.params);
 
       const saleSnapshot = await this.db.collection(saleCollection).doc(saleDoc).get();
       const sale = saleSnapshot.data() as Sale;
       Sale.check(sale);
+      const whitelistRefs = await this.db.collection(sale.batch).listDocuments();
+      const whitelistIds = whitelistRefs.map((it) => it.id).sort();
 
-      const batchSnapshot = await this.db.collection(sale.batch).get();
-      const whitelistDocs = batchSnapshot.docs;
+      let proof: Proof;
+      await this.db.collection(sale.batch)
+          .where("address", "array-contains", req.params.address)
+          .get()
+          .then((result) => {
+            result.forEach((whitelistDoc) => {
+              const whitelist = whitelistDoc.data() as Whitelist;
+              Whitelist.check(whitelist);
+              validateAddresses(Handler.GetProof, whitelist.addresses, res);
+              // NOTE: assumes user prefers higher value to higher tier in the edge case
+              // where they're given enough of a lower tier to exceed the value of the next
+              // tier
+              if (proof == undefined || proof.allocation < whitelist.allocation) {
+                proof = {
+                  allocation: whitelist.allocation,
+                  tiercode: whitelist.tierCode,
+                  // NOTE: computationally expensive but we shouldn't have users in too many whitelists anw
+                  proof: getProof(req.params.address, whitelist.addresses),
+                  whitelistIdx: whitelistIds.indexOf(whitelistDoc.id),
+                };
+              }
+            });
+          });
 
-      // TODO: write as forEach
-      for (let i = 0; i < whitelistDocs.length; i++) {
-        const whitelist = whitelistDocs[i].data() as Whitelist;
-        Whitelist.check(whitelist);
-        validateAddresses(Handler.getProof, whitelist.addresses, res);
-        if (whitelist.addresses.indexOf(req.params.address) != -1) {
-          const buyNFTResponse: Proof = {
-            allocation: whitelist.allocation,
-            proof: getProof(req.params.address, whitelist.addresses),
-            whitelistIdx: [i.toString()],
-            tiercode: whitelist.tierCode,
-          };
-          console.log(buyNFTResponse);
-          res.status(StatusCodes.OK).json(buyNFTResponse);
-          break;
-        }
+
+      if (proof! == undefined || proof.whitelistIdx == -1) {
+        res.status(StatusCodes.NOT_FOUND).json({error: ReasonPhrases.NOT_FOUND});
       }
-      res.status(StatusCodes.OK).json({});
     } catch (err) {
-      handleError(Handler.getProof, err, res);
+      log({handler: Handler.GetProof, error: err});
+      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({error: err});
     }
   }
 
-  // TODO: fill in
   async getSale(
       req: Request<unknown, Sale | Error>,
       res: Response<Sale | Error>
   ) {
-
+    try {
+      const saleSnapshot = await this.db.collection(saleCollection).doc(saleDoc).get();
+      const sale = saleSnapshot.data() as Sale;
+      Sale.check(sale);
+      res.status(StatusCodes.OK).json(sale);
+    } catch (err) {
+      log({handler: Handler.GetProof, error: err});
+      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({error: err});
+    }
   }
 }

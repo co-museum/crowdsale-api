@@ -15,7 +15,7 @@ export type Whitelist = Static<typeof Whitelist>
 
 export const Proof = Record({
   proof: Array(String),
-  whitelistIdx: Array(String),
+  whitelistIdx: Number,
   allocation: Number,
   tiercode: Number,
 });

@@ -5,10 +5,10 @@ import {ethers} from "ethers";
 import {StatusCodes} from "http-status-codes";
 
 export enum LogLevel {
-  debug = "debug",
-  info = "info",
-  warn = "warn",
-  error = "error",
+  Debug = "debug",
+  Info = "info",
+  Warn = "warn",
+  Error = "error",
 }
 
 interface LogMessage {
@@ -20,7 +20,7 @@ interface LogMessage {
 
 export function log(msg: LogMessage, lvl?: LogLevel) {
   if (lvl == undefined) {
-    lvl = msg.error ? LogLevel.error : LogLevel.info;
+    lvl = msg.error ? LogLevel.Error : LogLevel.Info;
   }
   logger[lvl](msg);
 }

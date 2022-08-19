@@ -3,7 +3,7 @@ import {Sale, Whitelist, Addresses, Error} from "./types";
 import {saleCollection, saleDoc} from "./constants";
 import {Record, String, Static} from "runtypes";
 import {Response, Request} from "express";
-import {Firestore} from "firebase-admin/firestore";
+import {Firestore} from "firebase/firestore";
 import {union, difference} from "lodash";
 import {StatusCodes} from "http-status-codes";
 
