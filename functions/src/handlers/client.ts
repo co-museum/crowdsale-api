@@ -1,11 +1,11 @@
 import {Record, String, Static} from "runtypes";
 import {Request, Response} from "express";
-import {Firestore} from "firebase-admin/firestore";
+import {Firestore, FieldPath} from "firebase-admin/firestore";
 import {StatusCodes, ReasonPhrases} from "http-status-codes";
 import {ethers} from "ethers";
 import MerkleTree from "merkletreejs";
 import {keccak256} from "ethers/lib/utils";
-import {Addresses, Proof, Sale, Whitelist, Error} from "./types";
+import {Addresses, Proof, Sale, Whitelist} from "./types";
 import {log, validateAddresses} from "./utils";
 import {saleCollection, saleDoc} from "./constants";
 
@@ -43,8 +43,16 @@ export class Client {
       const saleSnapshot = await this.db.collection(saleCollection).doc(saleDoc).get();
       const sale = saleSnapshot.data() as Sale;
       Sale.check(sale);
-      const whitelistRefs = await this.db.collection(sale.batch).listDocuments();
-      const whitelistIds = whitelistRefs.map((it) => it.id).sort();
+      const whitelistIds: string[] = [];
+      await this.db.collection(sale.batch)
+          .orderBy(FieldPath.documentId())
+          .select(FieldPath.documentId())
+          .get()
+          .then((result) => {
+            result.forEach((whitelistDoc) => {
+              whitelistIds.push(whitelistDoc.id);
+            });
+          });
 
       let proof: Proof;
       await this.db.collection(sale.batch)
@@ -72,11 +80,11 @@ export class Client {
 
 
       if (proof! == undefined || proof.whitelistIdx == -1) {
-        res.status(StatusCodes.NOT_FOUND).json({error: ReasonPhrases.NOT_FOUND});
+        res.status(StatusCodes.NOT_FOUND).json(new Error(ReasonPhrases.NOT_FOUND));
       }
     } catch (err) {
       log({handler: Handler.GetProof, error: err});
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({error: err});
+      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(err as Error);
     }
   }
 
@@ -91,7 +99,7 @@ export class Client {
       res.status(StatusCodes.OK).json(sale);
     } catch (err) {
       log({handler: Handler.GetProof, error: err});
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({error: err});
+      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(err as Error);
     }
   }
 }

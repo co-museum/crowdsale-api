@@ -1,11 +1,13 @@
 import {log, validateAddresses} from "./utils";
-import {Sale, Whitelist, Addresses, Error} from "./types";
+import {Sale, Whitelist, Addresses, Batch} from "./types";
 import {saleCollection, saleDoc} from "./constants";
 import {Record, String, Static} from "runtypes";
 import {Response, Request} from "express";
-import {Firestore} from "firebase/firestore";
+import {FieldPath, Firestore} from "firebase-admin/firestore";
 import {union, difference} from "lodash";
 import {StatusCodes} from "http-status-codes";
+import MerkleTree from "merkletreejs";
+import {keccak256} from "ethers/lib/utils";
 
 enum Handler {
   AddWhitelist = "addWhitelist",
@@ -13,6 +15,7 @@ enum Handler {
   AddAddresses = "addAddresses",
   RemoveAddresses = "removeAddresses",
   SetSale = "setSale",
+  GetBatch = "getBatch",
 }
 
 const Params = Record({
@@ -21,6 +24,12 @@ const Params = Record({
 });
 type Params = Static<typeof Params>
 
+function getMerkleRoot(addresses: Addresses): string {
+  const leaves = addresses.map((address) => keccak256(address));
+  const tree = new MerkleTree(leaves, keccak256, {sort: true});
+  const root = tree.getHexRoot();
+  return root;
+}
 
 export class Admin {
   constructor(public db: Firestore) {
@@ -30,6 +39,7 @@ export class Admin {
     this.addAddresses = this.addAddresses.bind(this);
     this.removeAddresses = this.removeAddresses.bind(this);
     this.setSale = this.setSale.bind(this);
+    this.getBatch = this.getBatch.bind(this);
   }
 
   async addWhitelist(
@@ -51,7 +61,7 @@ export class Admin {
       res.status(StatusCodes.OK).json(updatedData);
     } catch (err) {
       log({handler: Handler.AddWhitelist, error: err});
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({error: err});
+      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(err as Error);
     }
   }
 
@@ -67,7 +77,7 @@ export class Admin {
       res.status(StatusCodes.OK).json(req.params);
     } catch (err) {
       log({handler: Handler.RemoveWhitelist, error: err});
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({error: err});
+      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(err as Error);
     }
   }
 
@@ -95,7 +105,7 @@ export class Admin {
       res.status(StatusCodes.OK).json(updatedData);
     } catch (err) {
       log({handler: Handler.AddAddresses, error: err});
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({error: err});
+      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(err as Error);
     }
   }
 
@@ -123,7 +133,7 @@ export class Admin {
       res.status(StatusCodes.OK).json(updatedData);
     } catch (err) {
       log({handler: Handler.RemoveAddresses, error: err});
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({error: err});
+      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(err as Error);
     }
   }
 
@@ -132,7 +142,7 @@ export class Admin {
       res: Response<Sale | Error>,
   ) {
     try {
-      log({handler: Handler.SetSale, body: req.body, params: req.params});
+      log({handler: Handler.SetSale, body: req.body});
       Sale.check(req.body);
       const ref = this.db.collection(saleCollection).doc(saleDoc);
       await ref.set(req.body);
@@ -141,7 +151,43 @@ export class Admin {
       res.status(StatusCodes.OK).json(data);
     } catch (err) {
       log({handler: Handler.SetSale, error: err});
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({error: err});
+      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(err as Error);
+    }
+  }
+
+  async getBatch(
+      req: Request,
+      res: Response<Batch | Error>,
+  ) {
+    try {
+      log({handler: Handler.GetBatch});
+      const saleSnapshot = await this.db.collection(saleCollection).doc(saleDoc).get();
+      const sale = saleSnapshot.data() as Sale;
+      Sale.check(sale);
+
+      const batch: Batch = {
+        allocations: [],
+        tierCodes: [],
+        merkleRoots: [],
+      };
+
+      await this.db.collection(sale.batch)
+          .orderBy(FieldPath.documentId())
+          .get()
+          .then((result) => {
+            result.forEach((whitelistDoc) => {
+              const whitelist = whitelistDoc.data() as Whitelist;
+              Whitelist.check(whitelist);
+              batch.allocations.push(whitelist.allocation);
+              batch.tierCodes.push(whitelist.tierCode);
+              batch.merkleRoots.push(getMerkleRoot(whitelist.addresses));
+            });
+          });
+
+      res.status(StatusCodes.OK).json(batch);
+    } catch (err) {
+      log({handler: Handler.GetBatch, error: err});
+      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(err as Error);
     }
   }
 }

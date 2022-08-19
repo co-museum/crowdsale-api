@@ -1,5 +1,12 @@
 import {Record, Number, String, Array, Static} from "runtypes";
 
+export const Batch = Record({
+  tierCodes: Array(Number),
+  allocations: Array(Number),
+  merkleRoots: Array(String),
+});
+export type Batch = Static<typeof Batch>
+
 export const Sale = Record({
   batch: String,
   endTimestamp: Number,
@@ -22,8 +29,4 @@ export const Proof = Record({
 export type Proof = Static<typeof Proof>;
 
 export const Addresses = Array(String);
-export type Addresses = Static<typeof Addresses>
-
-export interface Error {
-  error: unknown
-}
+export type Addresses = Static<typeof Addresses>;
