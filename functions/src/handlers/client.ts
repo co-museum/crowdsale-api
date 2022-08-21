@@ -30,6 +30,7 @@ function getProof(address: string, addresses: Addresses): string[] {
 export class Client {
   constructor(public db: Firestore) {
     this.getProof = this.getProof.bind(this);
+    this.getSale = this.getSale.bind(this);
   }
 
   async getProof(
@@ -39,7 +40,6 @@ export class Client {
     try {
       log({handler: Handler.GetProof, body: req.body, params: req.params});
       Params.check(req.params);
-
       const saleSnapshot = await this.db.collection(saleCollection).doc(saleDoc).get();
       const sale = saleSnapshot.data() as Sale;
       Sale.check(sale);
@@ -53,10 +53,9 @@ export class Client {
               whitelistIds.push(whitelistDoc.id);
             });
           });
-
       let proof: Proof;
       await this.db.collection(sale.batch)
-          .where("address", "array-contains", req.params.address)
+          .where("addresses", "array-contains", req.params.address)
           .get()
           .then((result) => {
             result.forEach((whitelistDoc) => {
@@ -82,7 +81,10 @@ export class Client {
       if (proof! == undefined || proof.whitelistIdx == -1) {
         res.status(StatusCodes.NOT_FOUND).json(new Error(ReasonPhrases.NOT_FOUND));
       }
+
+      res.status(StatusCodes.OK).json(proof!);
     } catch (err) {
+      log({handler: Handler.GetProof, error: "err are"});
       log({handler: Handler.GetProof, error: err});
       res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(err as Error);
     }
