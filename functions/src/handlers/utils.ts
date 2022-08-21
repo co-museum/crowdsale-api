@@ -35,3 +35,20 @@ export function validateAddresses(handler: string, addresses: Addresses, res: Re
   });
 }
 
+
+export function validateSale(handler: string, startTimestamp: number, endTimestamp: number, res: Response<Error>) {
+  if (endTimestamp < startTimestamp) {
+    const err = new Error( `${endTimestamp} is before ${startTimestamp}`);
+    log({handler: handler, error: err});
+    res.status(StatusCodes.UNPROCESSABLE_ENTITY).json(err);
+  }
+}
+
+
+export function validateSaleBatch(collectionList: string[], handler: string, batch: string, res: Response<Error>) {
+  if (collectionList.indexOf(batch) == -1) {
+    const err = new Error(`${batch} does not exist`);
+    log({handler: handler, error: err});
+    res.status(StatusCodes.UNPROCESSABLE_ENTITY).json(err);
+  }
+}

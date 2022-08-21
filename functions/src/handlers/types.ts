@@ -9,6 +9,7 @@ export type Batch = Static<typeof Batch>
 
 export const Sale = Record({
   batch: String,
+  startTimestamp: Number,
   endTimestamp: Number,
 });
 export type Sale = Static<typeof Sale>;

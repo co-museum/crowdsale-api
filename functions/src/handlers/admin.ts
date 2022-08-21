@@ -1,4 +1,4 @@
-import {log, validateAddresses} from "./utils";
+import {log, validateAddresses, validateSale as validateSaleTimestamps, validateSaleBatch} from "./utils";
 import {Sale, Whitelist, Addresses, Batch} from "./types";
 import {saleCollection, saleDoc} from "./constants";
 import {Record, String, Static} from "runtypes";
@@ -94,15 +94,15 @@ export class Admin {
       const ref = this.db.collection(req.params.batch).doc(req.params.whitelist);
       const old = await ref.get();
       const oldData = old.data() as Whitelist;
-      Addresses.check(oldData);
+      Addresses.check(oldData.addresses);
 
       // HACK: the firestore arrayUnion is broken
       const whitelist = {addresses: union(oldData.addresses, req.body)};
       await ref.update(whitelist);
       const updated = await ref.get();
-      const updatedData = updated.data() as Addresses;
-      Addresses.check(updatedData);
-      res.status(StatusCodes.OK).json(updatedData);
+      const updatedData = updated.data() as Whitelist;
+      Addresses.check(updatedData.addresses);
+      res.status(StatusCodes.OK).json(updatedData.addresses);
     } catch (err) {
       log({handler: Handler.AddAddresses, error: err});
       res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(err as Error);
@@ -122,15 +122,15 @@ export class Admin {
       const ref = this.db.collection(req.params.batch).doc(req.params.whitelist);
       const old = await ref.get();
       const oldData = old.data() as Whitelist;
-      Addresses.check(oldData);
+      Addresses.check(oldData.addresses);
 
       // HACK: the firestore arrayRemove is broken
       const whitelist = {addresses: difference(oldData.addresses, req.body)};
       await ref.update(whitelist);
       const updated = await ref.get();
-      const updatedData = updated.data() as Addresses;
-      Addresses.check(updatedData);
-      res.status(StatusCodes.OK).json(updatedData);
+      const updatedData = updated.data() as Whitelist;
+      Addresses.check(updatedData.addresses);
+      res.status(StatusCodes.OK).json(updatedData.addresses);
     } catch (err) {
       log({handler: Handler.RemoveAddresses, error: err});
       res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(err as Error);
@@ -144,6 +144,10 @@ export class Admin {
     try {
       log({handler: Handler.SetSale, body: req.body});
       Sale.check(req.body);
+      validateSaleTimestamps(Handler.SetSale, req.body.startTimestamp, req.body.endTimestamp, res);
+      const collectionList = (await this.db.listCollections()).map((doc) => doc.id);
+      validateSaleBatch(collectionList, Handler.SetSale, req.body.batch, res);
+
       const ref = this.db.collection(saleCollection).doc(saleDoc);
       await ref.set(req.body);
       const updated = await ref.get();
@@ -191,3 +195,5 @@ export class Admin {
     }
   }
 }
+
+

@@ -17,11 +17,11 @@ app.put("/admin/whitelist/:batch/:whitelist", admin.addWhitelist);
 app.delete("/admin/whitelist/:batch/:whitelist", admin.removeWhitelist);
 app.put("/admin/address/:batch/:whitelist", admin.addAddresses);
 app.delete("/admin/address/:batch/:whitelist", admin.removeAddresses);
-app.put("admin/sale", admin.setSale);
-app.get("admin/batch", admin.getBatch);
+app.put("/admin/sale", admin.setSale);
+app.get("/admin/batch", admin.getBatch);
 
-app.get("proof/:address", client.getProof);
-app.get("sale", client.getSale);
+app.get("/proof/:address", client.getProof);
+app.get("/sale", client.getSale);
 
 export const api = functions
     .region("asia-southeast1") // comma separated string to multiple regions
