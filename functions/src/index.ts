@@ -1,4 +1,5 @@
 import * as functions from "firebase-functions";
+import {httpErrorMiddleware, logMiddleware} from "./middleware";
 import {Admin} from "./handlers/admin";
 import {Client} from "./handlers/client";
 import express from "express";
@@ -7,6 +8,8 @@ import {getFirestore} from "firebase-admin/firestore";
 
 const app = express();
 app.use(express.json());
+app.use(logMiddleware);
+app.use(httpErrorMiddleware);
 initializeApp();
 
 const db = getFirestore();

@@ -1,18 +1,13 @@
 import {Record, String, Static} from "runtypes";
-import {Request, Response} from "express";
+import {NextFunction, Request, Response} from "express";
 import {Firestore, FieldPath} from "firebase-admin/firestore";
-import {StatusCodes, ReasonPhrases} from "http-status-codes";
 import {ethers} from "ethers";
 import MerkleTree from "merkletreejs";
 import {keccak256} from "ethers/lib/utils";
 import {Addresses, Proof, Sale, Whitelist} from "./types";
-import {log, validateAddresses} from "./utils";
+import {validateAddresses} from "./utils";
 import {saleCollection, saleDoc} from "./constants";
-
-enum Handler {
-  GetProof = "getProof",
-  GetSale = "getSale",
-}
+import createHttpError from "http-errors";
 
 const Params = Record({
   address: String,
@@ -35,14 +30,15 @@ export class Client {
 
   async getProof(
       req: Request<Params, Proof | Error>,
-      res: Response<Proof | Error>
+      res: Response<Proof | Error>,
+      next: NextFunction,
   ) {
     try {
-      log({handler: Handler.GetProof, body: req.body, params: req.params});
       Params.check(req.params);
       const saleSnapshot = await this.db.collection(saleCollection).doc(saleDoc).get();
       const sale = saleSnapshot.data() as Sale;
       Sale.check(sale);
+
       const whitelistIds: string[] = [];
       await this.db.collection(sale.batch)
           .orderBy(FieldPath.documentId())
@@ -53,6 +49,7 @@ export class Client {
               whitelistIds.push(whitelistDoc.id);
             });
           });
+
       let proof: Proof;
       await this.db.collection(sale.batch)
           .where("addresses", "array-contains", req.params.address)
@@ -61,7 +58,7 @@ export class Client {
             result.forEach((whitelistDoc) => {
               const whitelist = whitelistDoc.data() as Whitelist;
               Whitelist.check(whitelist);
-              validateAddresses(Handler.GetProof, whitelist.addresses, res);
+              validateAddresses(whitelist.addresses);
               // NOTE: assumes user prefers higher value to higher tier in the edge case
               // where they're given enough of a lower tier to exceed the value of the next
               // tier
@@ -78,30 +75,30 @@ export class Client {
           });
 
 
+      // NOTE: proof is set inside callback and the compiler is not smart enough
+      // to figure that out.
       if (proof! == undefined || proof.whitelistIdx == -1) {
-        res.status(StatusCodes.NOT_FOUND).json(new Error(ReasonPhrases.NOT_FOUND));
+        throw new createHttpError.NotFound();
       }
 
-      res.status(StatusCodes.OK).json(proof!);
+      res.json(proof!);
     } catch (err) {
-      log({handler: Handler.GetProof, error: "err are"});
-      log({handler: Handler.GetProof, error: err});
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(err as Error);
+      next(err);
     }
   }
 
   async getSale(
-      req: Request<unknown, Sale | Error>,
-      res: Response<Sale | Error>
+      _: Request<unknown, Sale | Error>,
+      res: Response<Sale | Error>,
+      next: NextFunction,
   ) {
     try {
       const saleSnapshot = await this.db.collection(saleCollection).doc(saleDoc).get();
       const sale = saleSnapshot.data() as Sale;
       Sale.check(sale);
-      res.status(StatusCodes.OK).json(sale);
+      res.json(sale);
     } catch (err) {
-      log({handler: Handler.GetProof, error: err});
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(err as Error);
+      next(err);
     }
   }
 }

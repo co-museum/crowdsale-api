@@ -1,22 +1,12 @@
-import {log, validateAddresses, validateSale as validateSaleTimestamps, validateSaleBatch} from "./utils";
+import {assertCollectionExists, validateAddresses} from "./utils";
 import {Sale, Whitelist, Addresses, Batch} from "./types";
 import {saleCollection, saleDoc} from "./constants";
 import {Record, String, Static} from "runtypes";
-import {Response, Request} from "express";
+import {Response, Request, NextFunction} from "express";
 import {FieldPath, Firestore} from "firebase-admin/firestore";
 import {union, difference} from "lodash";
-import {StatusCodes} from "http-status-codes";
 import MerkleTree from "merkletreejs";
 import {keccak256} from "ethers/lib/utils";
-
-enum Handler {
-  AddWhitelist = "addWhitelist",
-  RemoveWhitelist = "removeWhitelist",
-  AddAddresses = "addAddresses",
-  RemoveAddresses = "removeAddresses",
-  SetSale = "setSale",
-  GetBatch = "getBatch",
-}
 
 const Params = Record({
   batch: String,
@@ -40,56 +30,62 @@ export class Admin {
     this.removeAddresses = this.removeAddresses.bind(this);
     this.setSale = this.setSale.bind(this);
     this.getBatch = this.getBatch.bind(this);
+    this.validateSale = this.validateSale.bind(this);
+  }
+
+  private async validateSale(sale: Sale) {
+    if (sale.endTimestamp< sale.startTimestamp) {
+      throw new Error( `sale ends (${sale.endTimestamp}) before sale start (${sale.startTimestamp})`);
+    }
+    await assertCollectionExists(this.db, sale.batch);
   }
 
   async addWhitelist(
       req: Request<Params, Whitelist | Error, Whitelist>,
-      res: Response<Whitelist | Error>
+      res: Response<Whitelist | Error>,
+      next: NextFunction,
   ) {
     try {
-      log({handler: Handler.AddWhitelist, body: req.body, params: req.params});
       Params.check(req.params);
       Whitelist.check(req.body);
 
       const whitelist = req.body;
-      validateAddresses(Handler.AddWhitelist, whitelist.addresses, res);
+      validateAddresses(whitelist.addresses);
       const ref = this.db.collection(req.params.batch).doc(req.params.whitelist);
       await ref.set(whitelist);
       const updated = await ref.get();
       const updatedData = updated.data() as Whitelist;
       Whitelist.check(updatedData);
-      res.status(StatusCodes.OK).json(updatedData);
+      res.json(updatedData);
     } catch (err) {
-      log({handler: Handler.AddWhitelist, error: err});
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(err as Error);
+      next(err);
     }
   }
 
   async removeWhitelist(
       req: Request<Params, Params | Error>,
-      res: Response<Params | Error>
+      res: Response<Params | Error>,
+      next: NextFunction,
   ) {
     try {
-      log({handler: Handler.RemoveWhitelist, body: req.body, params: req.params});
       Params.check(req.params);
       const ref = this.db.collection(req.params.batch).doc(req.params.whitelist);
       await ref.delete();
-      res.status(StatusCodes.OK).json(req.params);
+      res.json(req.params);
     } catch (err) {
-      log({handler: Handler.RemoveWhitelist, error: err});
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(err as Error);
+      next(err);
     }
   }
 
   async addAddresses(
       req: Request<Params, Addresses | Error, Addresses>,
       res: Response<Addresses | Error>,
+      next: NextFunction,
   ) {
     try {
-      log({handler: Handler.AddAddresses, body: req.body, params: req.params});
       Params.check(req.params);
       Addresses.check(req.body);
-      validateAddresses(Handler.AddAddresses, req.body, res);
+      validateAddresses(req.body);
 
       const ref = this.db.collection(req.params.batch).doc(req.params.whitelist);
       const old = await ref.get();
@@ -102,22 +98,21 @@ export class Admin {
       const updated = await ref.get();
       const updatedData = updated.data() as Whitelist;
       Addresses.check(updatedData.addresses);
-      res.status(StatusCodes.OK).json(updatedData.addresses);
+      res.json(updatedData.addresses);
     } catch (err) {
-      log({handler: Handler.AddAddresses, error: err});
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(err as Error);
+      next(err);
     }
   }
 
   async removeAddresses(
       req: Request<Params, Addresses | Error, Addresses>,
       res: Response<Addresses | Error>,
+      next: NextFunction,
   ) {
     try {
-      log({handler: Handler.RemoveAddresses, body: req.body, params: req.params});
       Params.check(req.params);
       Addresses.check(req.body);
-      validateAddresses(Handler.RemoveAddresses, req.body, res);
+      validateAddresses(req.body);
 
       const ref = this.db.collection(req.params.batch).doc(req.params.whitelist);
       const old = await ref.get();
@@ -130,41 +125,37 @@ export class Admin {
       const updated = await ref.get();
       const updatedData = updated.data() as Whitelist;
       Addresses.check(updatedData.addresses);
-      res.status(StatusCodes.OK).json(updatedData.addresses);
+      res.json(updatedData.addresses);
     } catch (err) {
-      log({handler: Handler.RemoveAddresses, error: err});
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(err as Error);
+      next(err);
     }
   }
 
   async setSale(
       req: Request<unknown, Sale | Error, Sale>,
       res: Response<Sale | Error>,
+      next: NextFunction,
   ) {
     try {
-      log({handler: Handler.SetSale, body: req.body});
       Sale.check(req.body);
-      validateSaleTimestamps(Handler.SetSale, req.body.startTimestamp, req.body.endTimestamp, res);
-      const collectionList = (await this.db.listCollections()).map((doc) => doc.id);
-      validateSaleBatch(collectionList, Handler.SetSale, req.body.batch, res);
+      await this.validateSale(req.body);
 
       const ref = this.db.collection(saleCollection).doc(saleDoc);
       await ref.set(req.body);
       const updated = await ref.get();
       const data = updated.data() as Sale;
-      res.status(StatusCodes.OK).json(data);
+      res.json(data);
     } catch (err) {
-      log({handler: Handler.SetSale, error: err});
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(err as Error);
+      next(err);
     }
   }
 
   async getBatch(
-      req: Request,
+      _: Request,
       res: Response<Batch | Error>,
+      next: NextFunction,
   ) {
     try {
-      log({handler: Handler.GetBatch});
       const saleSnapshot = await this.db.collection(saleCollection).doc(saleDoc).get();
       const sale = saleSnapshot.data() as Sale;
       Sale.check(sale);
@@ -188,10 +179,9 @@ export class Admin {
             });
           });
 
-      res.status(StatusCodes.OK).json(batch);
+      res.json(batch);
     } catch (err) {
-      log({handler: Handler.GetBatch, error: err});
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(err as Error);
+      next(err);
     }
   }
 }
