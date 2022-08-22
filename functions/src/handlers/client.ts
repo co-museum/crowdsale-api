@@ -75,12 +75,13 @@ export class Client {
           });
 
 
-      // NOTE: proof is set inside callback and the compiler is not smart enough
-      // to figure that out.
+      // NOTE: proof is set inside callback
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       if (proof! == undefined || proof.whitelistIdx == -1) {
         throw new createHttpError.NotFound();
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       res.json(proof!);
     } catch (err) {
       next(err);

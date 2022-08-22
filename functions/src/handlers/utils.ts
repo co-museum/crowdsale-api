@@ -14,6 +14,6 @@ export function validateAddresses(addresses: Addresses) {
 export async function assertCollectionExists(db: Firestore, collection: string) {
   const docs = await db.collection(collection).select(FieldPath.documentId()).limit(1).get();
   if (docs.docs.length == 0) {
-    throw new createHttpError.NotFound(`${collection} does not exist`);
+    throw new createHttpError.NotFound(`batch ${collection} does not exist`);
   }
 }
