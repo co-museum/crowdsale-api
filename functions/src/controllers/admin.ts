@@ -7,6 +7,9 @@ import {FieldPath, Firestore} from "firebase-admin/firestore";
 import {union, difference} from "lodash";
 import MerkleTree from "merkletreejs";
 import {keccak256} from "ethers/lib/utils";
+import createHttpError from "http-errors";
+import {Auth} from "firebase-admin/auth";
+import {StatusCodes} from "http-status-codes";
 
 const Params = Record({
   batch: String,
@@ -21,8 +24,14 @@ function getMerkleRoot(addresses: Addresses): string {
   return root;
 }
 
+const bearerPrefix = "Bearer ";
+
+function getBearerToken(authHeader: string): string {
+  return authHeader.split("Bearer ")[1];
+}
+
 export class Admin {
-  constructor(public db: Firestore) {
+  constructor(private db: Firestore, private auth: Auth) {
     // NOTE: make sure that `this` stays bound to the object when passed as a handler
     this.addWhitelist = this.addWhitelist.bind(this);
     this.removeWhitelist = this.removeWhitelist.bind(this);
@@ -31,6 +40,25 @@ export class Admin {
     this.setSale = this.setSale.bind(this);
     this.getBatch = this.getBatch.bind(this);
     this.validateSale = this.validateSale.bind(this);
+    this.authMiddleware = this.authMiddleware.bind(this);
+  }
+
+  // NOTE: middleware belogs here as it's only relevant to the admin API
+  // it is also the only piece of middleware that interacts with Firebase
+  async authMiddleware(req: Request, _: Response, next: NextFunction) {
+    if (!req.headers.authorization || !req.headers.authorization.startsWith(bearerPrefix)) {
+      next(new createHttpError.Unauthorized("no bearer token"));
+      return;
+    }
+
+    try {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const idToken = getBearerToken(req.headers.authorization!);
+      await this.auth.verifyIdToken(idToken);
+      next();
+    } catch (err) {
+      next(createHttpError(StatusCodes.FORBIDDEN, err as Error));
+    }
   }
 
   private async validateSale(sale: Sale) {

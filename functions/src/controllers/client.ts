@@ -23,7 +23,7 @@ function getProof(address: string, addresses: Addresses): string[] {
 }
 
 export class Client {
-  constructor(public db: Firestore) {
+  constructor(private db: Firestore) {
     this.getProof = this.getProof.bind(this);
     this.getSale = this.getSale.bind(this);
   }
