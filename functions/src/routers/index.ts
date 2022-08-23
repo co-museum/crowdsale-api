@@ -4,7 +4,6 @@ import {errorMiddleware, logMiddleware} from "../middleware";
 import getAdminRouter from "./admin";
 import getClientRouter from "./client";
 
-
 export default function getRouter(db: Firestore): Router {
   const router = express.Router();
 

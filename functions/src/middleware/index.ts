@@ -18,34 +18,24 @@ export function errorMiddleware(err: Error, req: Request, res: Response, _: Next
   }
 }
 
-export async function validateFirebaseIdToken(req: Request, res: Response, next: NextFunction) {
-  if ((!req.headers.authorization || !req.headers.authorization.startsWith("Bearer ")) &&
-        !(req.cookies && req.cookies.__session)) {
-    res.status(403).send("Unauthorized");
-    return;
-  }
+const bearerPrefix = "Bearer ";
 
-  let idToken;
-  if (req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
-    // Read the ID Token from the Authorization header.
-    idToken = req.headers.authorization.split("Bearer ")[1];
-  } else if (req.cookies) {
-    // Read the ID Token from cookie.
-    idToken = req.cookies.__session;
-  } else {
-    // No cookie
-    res.status(403).send("Unauthorized");
+function getBearerToken(authHeader: string): string {
+  return authHeader.split("Bearer ")[1];
+}
+
+export async function authMiddleware(req: Request, res: Response, next: NextFunction) {
+  if (!req.headers.authorization || !req.headers.authorization.startsWith(bearerPrefix)) {
+    next(new createHttpError.Unauthorized("no bearer token"));
     return;
   }
 
   try {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const idToken = getBearerToken(req.headers.authorization!);
     await admin.auth().verifyIdToken(idToken);
     next();
-    return;
-  } catch (error) {
-    res.status(403).send("Unauthorized: Error while verifying Firebase ID token");
-    return;
+  } catch (err) {
+    next(createHttpError(createHttpError.Forbidden, err as Error));
   }
 }
-
-

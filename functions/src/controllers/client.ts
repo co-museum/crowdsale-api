@@ -78,7 +78,7 @@ export class Client {
       // NOTE: proof is set inside callback
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       if (proof! == undefined || proof.whitelistIdx == -1) {
-        throw new createHttpError.NotFound();
+        throw new createHttpError.NotFound("address not found");
       }
 
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion

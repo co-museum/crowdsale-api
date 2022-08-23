@@ -1,7 +1,7 @@
 import express, {Router} from "express";
 import {Firestore} from "firebase-admin/firestore";
 import {Admin} from "../controllers/admin";
-
+import {authMiddleware} from "../middleware";
 
 export default function getAdminRouter(db: Firestore): Router {
   const adminRouter = express.Router();
@@ -14,6 +14,7 @@ export default function getAdminRouter(db: Firestore): Router {
   addressRouter.put("/:batch/:whitelist", admin.addAddresses);
   addressRouter.delete("/:batch/:whitelist", admin.removeAddresses);
 
+  adminRouter.use(authMiddleware);
   adminRouter.use("/whitelist", whitelistRouter);
   adminRouter.use("/address", addressRouter);
   adminRouter.put("/sale", admin.setSale);
