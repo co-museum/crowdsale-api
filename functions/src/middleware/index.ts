@@ -17,4 +17,3 @@ export function errorMiddleware(err: Error, req: Request, res: Response, _: Next
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(err);
   }
 }
-

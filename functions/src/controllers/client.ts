@@ -8,6 +8,8 @@ import {Addresses, Proof, Sale, Whitelist} from "./types";
 import {validateAddresses} from "./utils";
 import {saleCollection, saleDoc} from "./constants";
 import createHttpError from "http-errors";
+import {FirebaseFunctionsRateLimiter, FirebaseFunctionsRateLimiterConfiguration} from "firebase-functions-rate-limiter";
+import {StatusCodes} from "http-status-codes";
 
 const Params = Record({
   address: String,
@@ -23,9 +25,20 @@ function getProof(address: string, addresses: Addresses): string[] {
 }
 
 export class Client {
-  constructor(private db: Firestore) {
+  private limiter: FirebaseFunctionsRateLimiter;
+
+  constructor(private db: Firestore, rateLimitConfig: FirebaseFunctionsRateLimiterConfiguration) {
+    this.limiter = FirebaseFunctionsRateLimiter.withFirestoreBackend(rateLimitConfig, this.db);
     this.getProof = this.getProof.bind(this);
     this.getSale = this.getSale.bind(this);
+  }
+
+  async ipRateLimitMiddlware(req: Request, _: Response, next: NextFunction) {
+    try {
+      await this.limiter.rejectOnQuotaExceededOrRecordUsage(req.ip);
+    } catch (err) {
+      next(createHttpError(StatusCodes.TOO_MANY_REQUESTS, err as Error));
+    }
   }
 
   async getProof(
