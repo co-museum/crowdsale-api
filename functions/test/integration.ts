@@ -10,6 +10,7 @@ import {expect} from "chai";
 const api = "api";
 // const webApiKey = "test";
 const project = "demo-test";
+const region = "asia-southeast1";
 const batchName = "test-batch";
 const whitelistName = "test-whitelist";
 
@@ -27,7 +28,7 @@ const whitelist = {
 };
 
 const urls = {
-  functions: `http://localhost:${config.emulators.functions.port}/asia-southeast1-${project}.cloudfunctions.net/${api}`,
+  functions: `http://localhost:${config.emulators.functions.port}/${project}/${region}/${api}`,
   auth: `http://localhost:${config.emulators.auth.port}/identitytoolkit.googleapis.com/v1`,
   // eslint-disable-next-line max-len
   flushDb: `http://localhost:${config.emulators.firestore.port}/emulator/v1/projects/${project}/databases/(default)/documents`,
@@ -62,17 +63,25 @@ interface TestCase {
 function runTests(db: Firestore, prefix: string, tests: TestCase[]) {
   for (const test of tests) {
     it(test.name, async () => {
+      console.log("test started");
       if (test.prepopulate) {
         await db.collection(batchName).doc(whitelistName).set(whitelist);
+        console.log("prepopulated");
       }
 
-      const url = new URL(test.request.path, prefix).href;
-      console.log(url);
-      const req = request(test.request.method, url).type("json");
+      console.log(`prefix ${prefix}`);
+      console.log(`path ${test.request.path}`);
+      const url = `${prefix}/${test.request.path}`;
+      console.log(`sending request to url ${url}`);
+      // NOTE: we don't want superagent to throw - we test for status codes elsewhere
+      const req = request(test.request.method, url).type("json").ok((_) => true);
       if (test.request.idToken) {
         req.auth(test.request.idToken, {type: "bearer"});
+        console.log("added bearer token");
       }
+      console.log("sending request");
       const res = await req.send(test.request.body);
+      console.log("sent request");
 
       expect(res.statusCode).to.be.equal(test.response.code, "unexpected response code");
 
@@ -90,9 +99,12 @@ function runTests(db: Firestore, prefix: string, tests: TestCase[]) {
 }
 
 describe("api", () => {
+  console.log("testing api");
   process.env.FIRESTORE_EMULATOR_HOST = `localhost:${config.emulators.firestore.port}`;
   initializeApp({projectId: project});
+  console.log("initialized app");
   const db = getFirestore();
+  console.log("got firestore");
 
   describe("admin endpoints", () => {
     // let idToken: string;
@@ -125,10 +137,10 @@ describe("api", () => {
 
     afterEach(async () => {
       await request(TestMethod.DELETE, urls.flushDb).send();
+      console.log("flushed db");
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    runTests(db, new URL("admin", urls.functions).href, tests);
+    runTests(db, `${urls.functions}/admin`, tests);
   });
 
   // describe("client endpoints", () => {
