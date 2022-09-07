@@ -8,7 +8,6 @@ import {Firestore, getFirestore} from "firebase-admin/firestore";
 import {expect} from "chai";
 
 const api = "api";
-// const webApiKey = "test";
 const project = "demo-test";
 const region = "asia-southeast1";
 const batchName = "test-batch";
@@ -48,7 +47,7 @@ enum TestMethod {
 interface TestRequest {
   path: string
   method: TestMethod;
-  idToken?: string
+  correctIdToken?: boolean
   body?: Whitelist | Addresses | Sale
 }
 
@@ -60,55 +59,60 @@ interface TestCase {
   dbData?: Whitelist
 }
 
+let idToken: string;
+async function getIdToken(): Promise<string> {
+  if (!idToken) {
+    const res = await request
+        .post(`${urls.auth}/accounts:signUp`)
+        .query({key: "webApiKey"})
+        .type("json")
+        .accept("json")
+        .send({returnSecureToken: true});
+    idToken = res.body.idToken;
+  }
+  return idToken;
+}
+
 function runTests(db: Firestore, prefix: string, tests: TestCase[]) {
   for (const test of tests) {
     it(test.name, async () => {
-      console.log("test started");
       if (test.prepopulate) {
         await db.collection(batchName).doc(whitelistName).set(whitelist);
-        console.log("prepopulated");
       }
 
-      console.log(`prefix ${prefix}`);
-      console.log(`path ${test.request.path}`);
       const url = `${prefix}/${test.request.path}`;
-      console.log(`sending request to url ${url}`);
       // NOTE: we don't want superagent to throw - we test for status codes elsewhere
       const req = request(test.request.method, url).type("json").ok((_) => true);
-      if (test.request.idToken) {
-        req.auth(test.request.idToken, {type: "bearer"});
-        console.log("added bearer token");
+      if (test.request.correctIdToken != undefined) {
+        if (test.request.correctIdToken) {
+          req.auth(await getIdToken(), {type: "bearer"});
+        } else {
+          req.auth("invalidIdToken", {type: "bearer"});
+        }
       }
-      console.log("sending request");
       const res = await req.send(test.request.body);
-      console.log("sent request");
 
       expect(res.statusCode).to.be.equal(test.response.code, "unexpected response code");
 
       if (test.response.body) {
-        expect(res.body).to.be.equal(test.response.body, "unexpected response body");
+        expect(res.body).to.be.deep.equal(test.response.body, "unexpected response body");
       }
 
       if (test.dbData) {
         const snapshot = await db.collection(batchName).doc(whitelistName).get();
         const data = snapshot.data() as Whitelist;
-        expect(data).to.be.equal(test.dbData, "unexpected DB state");
+        expect(data).to.be.deep.equal(test.dbData, "unexpected DB state");
       }
     });
   }
 }
 
-describe("api", () => {
-  console.log("testing api");
+describe("api", async () => {
   process.env.FIRESTORE_EMULATOR_HOST = `localhost:${config.emulators.firestore.port}`;
   initializeApp({projectId: project});
-  console.log("initialized app");
   const db = getFirestore();
-  console.log("got firestore");
 
   describe("admin endpoints", () => {
-    // let idToken: string;
-
     const whitelistPath = `/whitelist/${batchName}/${whitelistName}`;
     // const addressPath = `/address/${batchName}/${whitelistName}`;
     // const salePath = "/sale";
@@ -117,30 +121,45 @@ describe("api", () => {
     const tests: TestCase[] = [
       {
         name: "cannot add whitelist without auth",
-        response: {code: StatusCodes.UNAUTHORIZED},
         request: {
           method: TestMethod.PUT,
           path: whitelistPath,
           body: whitelist,
         },
+        response: {code: StatusCodes.UNAUTHORIZED},
+      },
+      {
+        name: "cannot add whitelist with wrong bearer token",
+        request: {
+          correctIdToken: false,
+          method: TestMethod.PUT,
+          path: whitelistPath,
+          body: whitelist,
+        },
+        response: {code: StatusCodes.FORBIDDEN},
+      },
+      {
+        name: "can add whitelist",
+        request: {
+          correctIdToken: true,
+          method: TestMethod.PUT,
+          path: whitelistPath,
+          body: whitelist,
+        },
+        response: {
+          code: StatusCodes.OK,
+          body: whitelist,
+        },
+        dbData: whitelist,
       },
     ];
 
-    // before(async () => {
-    //   request(urls.auth)
-    //       .get("accounts:signUp")
-    //       .query({key: webApiKey})
-    //       .then((res) => {
-    //         idToken = res.body.idToken;
-    //       });
-    // });
-
     afterEach(async () => {
       await request(TestMethod.DELETE, urls.flushDb).send();
-      console.log("flushed db");
     });
 
-    runTests(db, `${urls.functions}/admin`, tests);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    runTests(db, `${urls.functions}/admin`, tests!);
   });
 
   // describe("client endpoints", () => {
