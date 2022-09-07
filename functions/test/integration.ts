@@ -20,10 +20,10 @@ const addresses = [
   "0xBDF166fD508F020a3c7F6D3BA0d26C8bC174fA53",
 ];
 
-const extraAddresses = [
-  "0xDBC05B1ECB4FDAEF943819C0B04E9EF6DF4BABD6",
-  "0x721B68FA152A930F3DF71F54AC1CE7ED3AC5F867",
-]
+// const extraAddresses = [
+//   "0xDBC05B1ECB4FDAEF943819C0B04E9EF6DF4BABD6",
+//   "0x721B68FA152A930F3DF71F54AC1CE7ED3AC5F867",
+// ];
 
 const whitelist = {
   tierCode: 0,
@@ -62,7 +62,6 @@ interface TestCase {
   response: TestResponse
   prepopulate?: boolean
   dbData?: Whitelist
-  noData?: boolean
 }
 
 let idToken: string;
@@ -105,15 +104,11 @@ function runTests(db: Firestore, prefix: string, tests: TestCase[]) {
         expect(res.body).to.be.deep.equal(test.response.body, "unexpected response body");
       }
 
+      const snapshot = await db.collection(batchName).doc(whitelistName).get();
+      const data = snapshot.data() as Whitelist;
       if (test.dbData) {
-        const snapshot = await db.collection(batchName).doc(whitelistName).get();
-        const data = snapshot.data() as Whitelist;
         expect(data).to.be.deep.equal(test.dbData, "unexpected DB state");
-      }
-
-      if (test.noData) {
-        const snapshot = await db.collection(batchName).doc(whitelistName).get();
-        const data = snapshot.data() as Whitelist;
+      } else {
         expect(data).to.be.undefined;
       }
     });
@@ -176,7 +171,6 @@ describe("api", async () => {
         response: {
           code: StatusCodes.OK,
         },
-        noData: true,
       },
     ];
 
