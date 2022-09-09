@@ -31,5 +31,6 @@ module.exports = {
     "import/no-unresolved": 0,
     "max-len": ["error", {code: 120}],
     "require-jsdoc": "off",
+    "@typescript-eslint/no-unused-vars": ["error", {"argsIgnorePattern": "^_"}],
   },
 };

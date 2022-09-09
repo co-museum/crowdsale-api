@@ -63,7 +63,9 @@ export class Admin {
 
   private async validateSale(sale: Sale) {
     if (sale.endTimestamp< sale.startTimestamp) {
-      throw new Error( `sale ends (${sale.endTimestamp}) before sale start (${sale.startTimestamp})`);
+      throw new createHttpError.UnprocessableEntity(
+          `sale ends (${sale.endTimestamp}) before sale start (${sale.startTimestamp})`
+      );
     }
     await assertCollectionExists(this.db, sale.batch);
   }
