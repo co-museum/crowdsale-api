@@ -17,6 +17,8 @@ export const whitelistPath1 = `${urls.functions}/admin/whitelist/${batchName}/${
 export const addressPath = `${urls.functions}/admin/address/${batchName}/${whitelistName}`;
 export const salePath = `${urls.functions}/admin/sale`;
 export const batchPath = `${urls.functions}/admin/batch`;
+export const clientSalePath = `${urls.functions}/client/sale`;
+export const proofPath = `${urls.functions}/client/proof`;
 
 export const addresses = [
   "0x99F06C58fF3F51b3fd7e39d8A5FADd7BDd456562",
@@ -37,12 +39,21 @@ export const whitelist = {
 };
 
 export const sale = {
+  type: "pre-sale",
   batch: batchName,
   startTimestamp: 0,
   endTimestamp: 1,
 };
 
-export const invalidSale = {
+export const malformedTimestampSale = {
+  type: "first-come",
+  batch: batchName,
+  startTimestamp: 1,
+  endTimestamp: 0,
+};
+
+export const malformedTypeSale = {
+  type: "foo",
   batch: batchName,
   startTimestamp: 1,
   endTimestamp: 0,

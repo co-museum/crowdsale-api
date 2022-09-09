@@ -1,17 +1,16 @@
 import {describe} from "mocha";
-import request from "superagent";
 import {StatusCodes} from "http-status-codes";
-import {buildBatch, runTests, TestCase, TestMethod} from "./utils";
+import {buildBatch, flushDb, runTests, TestCase, TestMethod} from "./utils";
 import _ from "lodash";
 import {
   addresses,
   addressPath,
   batchPath,
   extraAddresses,
-  invalidSale,
+  malformedTimestampSale,
+  malformedTypeSale,
   sale,
   salePath,
-  urls,
   whitelist,
   whitelistPath,
   whitelistPath1,
@@ -70,11 +69,25 @@ describe("admin endpoints", () => {
       ],
     },
     {
-      name: "cannot set invalid sale",
+      name: "cannot set invalid timestamp sale",
       prepopulate: true,
       requests: [
         {correctIdToken: true, method: TestMethod.PUT, path: whitelistPath, body: whitelist},
-        {correctIdToken: true, method: TestMethod.PUT, path: salePath, body: invalidSale},
+        {correctIdToken: true, method: TestMethod.PUT, path: salePath, body: malformedTimestampSale},
+      ],
+      responses: [
+        {code: StatusCodes.OK},
+        // TODO: figure out why proper http errors are not propagating
+        // {code: StatusCodes.UNPROCESSABLE_ENTITY},
+        {code: StatusCodes.INTERNAL_SERVER_ERROR},
+      ],
+    },
+    {
+      name: "cannot set invalid type sale",
+      prepopulate: true,
+      requests: [
+        {correctIdToken: true, method: TestMethod.PUT, path: whitelistPath, body: whitelist},
+        {correctIdToken: true, method: TestMethod.PUT, path: salePath, body: malformedTypeSale},
       ],
       responses: [
         {code: StatusCodes.OK},
@@ -123,7 +136,7 @@ describe("admin endpoints", () => {
   runTests(tests);
 
   afterEach(async () => {
-    await request(TestMethod.DELETE, urls.flushDb).send();
+    await flushDb();
   });
 });
 

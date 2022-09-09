@@ -2,13 +2,14 @@ import {expect} from "chai";
 import {ethers} from "ethers";
 import MerkleTree from "merkletreejs";
 import request from "superagent";
-import {Whitelist, Addresses, Sale, Batch} from "../src/controllers/types";
+import {Whitelist, Addresses, Sale, Batch, Proof} from "../src/controllers/types";
 import {urls} from "./constants";
 import config from "../../firebase.json";
+import {keccak256} from "ethers/lib/utils";
 
 export interface TestResponse {
-  code: number,
-  body?: Whitelist | Addresses | Sale | Batch,
+  code: number
+  body?: Whitelist | Addresses | Sale | Batch | Proof
 }
 
 export enum TestMethod {
@@ -19,7 +20,7 @@ export enum TestMethod {
 
 export interface TestRequest {
   path: string
-  method: TestMethod;
+  method: TestMethod
   correctIdToken?: boolean
   body?: Whitelist | Addresses | Sale
 }
@@ -67,6 +68,13 @@ export function buildBatch(whitelists: Whitelist[]): Batch {
   return batch;
 }
 
+export function getProof(address: string, addresses: Addresses): string[] {
+  const leaves = addresses.map((address) => ethers.utils.keccak256(address));
+  const tree = new MerkleTree(leaves, ethers.utils.keccak256, {sort: true});
+  const proof = tree.getHexProof(keccak256(address));
+  return proof;
+}
+
 async function sendRequest(testRequest: TestRequest): Promise<request.Response> {
   // NOTE: we don't want superagent to throw - we test for status codes elsewhere
   const req = request(testRequest.method, testRequest.path).type("json").ok((_) => true);
@@ -98,4 +106,9 @@ export function runTests(tests: TestCase[]) {
       }
     });
   }
+}
+
+export async function flushDb() {
+  process.env.FIRESTORE_EMULATOR_HOST = `localhost:${config.emulators.firestore.port}`;
+  await request(TestMethod.DELETE, urls.flushDb).send();
 }

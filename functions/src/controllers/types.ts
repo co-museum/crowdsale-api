@@ -7,8 +7,12 @@ export const Batch = Record({
 });
 export type Batch = Static<typeof Batch>
 
+const saleTypes = ["pre-sale", "first-come", "allowlist"];
 export const Sale = Record({
   batch: String,
+  type: String.withConstraint((type) => {
+    return saleTypes.indexOf(type) > -1;
+  }),
   startTimestamp: Number,
   endTimestamp: Number,
 });
