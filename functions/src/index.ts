@@ -4,12 +4,20 @@ import {initializeApp} from "firebase-admin/app";
 import getRouter from "./routers";
 import {getFirestore} from "firebase-admin/firestore";
 import {getAuth} from "firebase-admin/auth";
+import {FirebaseFunctionsRateLimiterConfiguration} from "firebase-functions-rate-limiter";
 
 initializeApp();
+
 const app = express();
 const db = getFirestore();
 const auth = getAuth();
-app.use("/", getRouter(db, auth));
+const rateLimitConfig: FirebaseFunctionsRateLimiterConfiguration = {
+  maxCalls: 10,
+  periodSeconds: 15,
+};
+
+app.set("trust proxy", true);
+app.use("/", getRouter(db, auth, rateLimitConfig));
 
 export const api = functions
     .region("asia-southeast1") // comma separated string to multiple regions

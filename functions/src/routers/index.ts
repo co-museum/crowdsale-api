@@ -3,6 +3,7 @@ import {Auth} from "firebase-admin/auth";
 import {Firestore} from "firebase-admin/firestore";
 import getAdminRouter from "./admin";
 import getClientRouter from "./client";
+import {FirebaseFunctionsRateLimiterConfiguration} from "firebase-functions-rate-limiter";
 import * as functions from "firebase-functions";
 import createHttpError from "http-errors";
 import {StatusCodes} from "http-status-codes";
@@ -28,7 +29,11 @@ function errorMiddleware(err: Error, req: Request, res: Response, _: NextFunctio
 }
 
 // NOTE: db and auth are injectable to enable mocking
-export default function getRouter(db: Firestore, auth: Auth): Router {
+export default function getRouter(
+    db: Firestore,
+    auth: Auth,
+    clientRateLimitConfig: FirebaseFunctionsRateLimiterConfiguration,
+): Router {
   const router = express.Router();
 
   router.use(express.json());
@@ -36,7 +41,7 @@ export default function getRouter(db: Firestore, auth: Auth): Router {
   router.use(corsMiddleware);
 
   router.use("/admin", getAdminRouter(db, auth));
-  router.use("/client", getClientRouter(db));
+  router.use("/client", getClientRouter(db, clientRateLimitConfig));
 
   router.use(errorMiddleware);
 
