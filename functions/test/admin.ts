@@ -77,9 +77,7 @@ describe("admin endpoints", () => {
       ],
       responses: [
         {code: StatusCodes.OK},
-        // TODO: figure out why proper http errors are not propagating
-        // {code: StatusCodes.UNPROCESSABLE_ENTITY},
-        {code: StatusCodes.INTERNAL_SERVER_ERROR},
+        {code: StatusCodes.UNPROCESSABLE_ENTITY},
       ],
     },
     {

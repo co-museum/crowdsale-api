@@ -10,7 +10,7 @@ export default function getClientRouter(
   const clientRouter = express.Router();
   const client = new Client(db, rateLimitConfig);
 
-  clientRouter.use(client.ipRateLimitMiddlware);
+  // clientRouter.use(client.ipRateLimitMiddlware);
   clientRouter.get("/proof/:address", client.getProof);
   clientRouter.get("/sale", client.getSale);
 

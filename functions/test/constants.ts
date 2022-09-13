@@ -21,15 +21,15 @@ export const clientSalePath = `${urls.functions}/client/sale`;
 export const proofPath = `${urls.functions}/client/proof`;
 
 export const addresses = [
-  "0x99F06C58fF3F51b3fd7e39d8A5FADd7BDd456562",
-  "0x83F433e18491356Ad5Eb8eEc683436a710735a08",
-  "0x964aAFA718C83Df1d163580c638Cfd5E6A2a0fCf",
-  "0xBDF166fD508F020a3c7F6D3BA0d26C8bC174fA53",
+  "0x99f06c58ff3f51b3fd7e39d8a5fadd7bdd456562",
+  "0x83f433e18491356ad5eb8eec683436a710735a08",
+  "0x964aafa718c83df1d163580c638cfd5e6a2a0fcf",
+  "0xbdf166fd508f020a3c7f6d3ba0d26c8bc174fa53",
 ];
 
 export const extraAddresses = [
-  "0xDBC05B1ECB4FDAEF943819C0B04E9EF6DF4BABD6",
-  "0x721B68FA152A930F3DF71F54AC1CE7ED3AC5F867",
+  "0xdbc05b1ecb4fdaef943819c0b04e9ef6df4babd6",
+  "0x721b68fa152a930f3df71f54ac1ce7ed3ac5f867",
 ];
 
 export const whitelist = {
