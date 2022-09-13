@@ -80,6 +80,7 @@ export class Admin {
       Whitelist.check(req.body);
 
       const whitelist = req.body;
+      whitelist.addresses = whitelist.addresses.map((addr) => addr.toLowerCase());
       validateAddresses(whitelist.addresses);
       const ref = this.db.collection(req.params.batch).doc(req.params.whitelist);
       await ref.set(whitelist);
