@@ -62,8 +62,13 @@ export class Admin {
   }
 
   private async validateSale(sale: Sale) {
+    try {
+      Sale.check(sale);
+    } catch (err) {
+      createHttpError(StatusCodes.BAD_REQUEST, err as Error);
+    }
     if (sale.endTimestamp< sale.startTimestamp) {
-      throw new createHttpError.UnprocessableEntity(
+      throw new createHttpError.BadRequest(
           `sale ends (${sale.endTimestamp}) before sale start (${sale.startTimestamp})`
       );
     }
@@ -168,7 +173,6 @@ export class Admin {
       next: NextFunction,
   ) {
     try {
-      Sale.check(req.body);
       await this.validateSale(req.body);
 
       const ref = this.db.collection(saleCollection).doc(saleDoc);
