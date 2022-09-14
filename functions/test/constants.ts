@@ -43,6 +43,12 @@ export const whitelist = {
   addresses: addresses,
 };
 
+export const whitelistWithLowerAllocation = {
+  tierCode: 0,
+  allocation: 400,
+  addresses: addresses,
+};
+
 export const invalidAdressesWhitelist = {
   tierCode: 0,
   allocation: 40000,
