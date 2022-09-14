@@ -32,10 +32,21 @@ export const extraAddresses = [
   "0x721b68fa152a930f3df71f54ac1ce7ed3ac5f867",
 ];
 
+export const invalidAddresses = [
+  "invalidAddress1",
+  "invalidAddress2",
+];
+
 export const whitelist = {
   tierCode: 0,
   allocation: 40000,
   addresses: addresses,
+};
+
+export const invalidAdressesWhitelist = {
+  tierCode: 0,
+  allocation: 40000,
+  addresses: invalidAddresses,
 };
 
 export const sale = {
