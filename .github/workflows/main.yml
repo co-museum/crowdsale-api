@@ -14,3 +14,11 @@ jobs:
       - name: build
         run: yarn build
         working-directory: ./functions
+      - name: Set up Node.js 16
+        uses: actions/setup-node@v1
+        with:
+          node-version: 16.x
+      - name: Run integration tests against emulator
+        run: |
+          npm install -g firebase-tools
+          cd functions && yarn test:ci
