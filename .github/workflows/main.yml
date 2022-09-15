@@ -1,0 +1,24 @@
+name: CI
+on: push
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: install
+        uses: borales/actions-yarn@v3.0.0
+        with:
+          cmd: install
+      - name: build
+        run: yarn build
+        working-directory: ./functions
+      - name: Set up Node.js 16
+        uses: actions/setup-node@v1
+        with:
+          node-version: 16.x
+      - name: Run integration tests against emulator
+        run: |
+          npm install -g firebase-tools
+          cd functions && yarn test:ci
