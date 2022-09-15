@@ -2,14 +2,14 @@ import {expect} from "chai";
 import {ethers} from "ethers";
 import MerkleTree from "merkletreejs";
 import request from "superagent";
-import {Whitelist, Addresses, Sale, Batch, Proof, ErrorMessage} from "../src/controllers/types";
+import {Whitelist, Addresses, Sale, Batch, Proof} from "../src/controllers/types";
 import {urls} from "./constants";
 import config from "../../firebase.json";
 import {keccak256} from "ethers/lib/utils";
 
 export interface TestResponse {
   code: number
-  body?: Whitelist | Addresses | Sale | Batch | Proof | ErrorMessage
+  body?: Whitelist | Addresses | Sale | Batch | Proof
 }
 
 export enum TestMethod {

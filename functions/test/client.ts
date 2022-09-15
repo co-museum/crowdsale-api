@@ -4,8 +4,6 @@ import {flushDb, getProof, runTests, TestCase, TestMethod} from "./utils";
 import {clientSalePath, extraAddresses,
   proofPath, sale, salePath, whitelist, whitelistPath, whitelistWithLowerAllocation} from "./constants";
 
-
-// TODO test non-happy-path scenarios
 describe("client endpoints", () => {
   const tests: TestCase[] = [
     {
@@ -80,7 +78,7 @@ describe("client endpoints", () => {
       responses: [
         {code: StatusCodes.OK, body: whitelist},
         {code: StatusCodes.OK, body: sale},
-        {code: StatusCodes.NOT_FOUND, body: {message: "address not found"}},
+        {code: StatusCodes.NOT_FOUND},
       ],
     },
   ];

@@ -35,8 +35,3 @@ export type Proof = Static<typeof Proof>;
 
 export const Addresses = Array(String);
 export type Addresses = Static<typeof Addresses>;
-
-export const ErrorMessage = Record({
-  message: String,
-});
-export type ErrorMessage = Static<typeof ErrorMessage>
