@@ -106,7 +106,7 @@ export class Admin {
     try {
       Params.check(req.params);
       const ref = this.db.collection(req.params.batch).doc(req.params.whitelist);
-      await ref.delete();
+      await ref.delete({exists: true});
       res.json(req.params);
     } catch (err) {
       next(err);
