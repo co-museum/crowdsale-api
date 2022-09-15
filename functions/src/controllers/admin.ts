@@ -62,8 +62,13 @@ export class Admin {
   }
 
   private async validateSale(sale: Sale) {
+    try {
+      Sale.check(sale);
+    } catch (err) {
+      createHttpError(StatusCodes.BAD_REQUEST, err as Error);
+    }
     if (sale.endTimestamp< sale.startTimestamp) {
-      throw new createHttpError.UnprocessableEntity(
+      throw new createHttpError.BadRequest(
           `sale ends (${sale.endTimestamp}) before sale start (${sale.startTimestamp})`
       );
     }
@@ -80,6 +85,7 @@ export class Admin {
       Whitelist.check(req.body);
 
       const whitelist = req.body;
+      whitelist.addresses = whitelist.addresses.map((addr) => addr.toLowerCase());
       validateAddresses(whitelist.addresses);
       const ref = this.db.collection(req.params.batch).doc(req.params.whitelist);
       await ref.set(whitelist);
@@ -100,7 +106,7 @@ export class Admin {
     try {
       Params.check(req.params);
       const ref = this.db.collection(req.params.batch).doc(req.params.whitelist);
-      await ref.delete();
+      await ref.delete({exists: true});
       res.json(req.params);
     } catch (err) {
       next(err);
@@ -167,7 +173,6 @@ export class Admin {
       next: NextFunction,
   ) {
     try {
-      Sale.check(req.body);
       await this.validateSale(req.body);
 
       const ref = this.db.collection(saleCollection).doc(saleDoc);

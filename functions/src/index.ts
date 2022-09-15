@@ -12,8 +12,8 @@ const app = express();
 const db = getFirestore();
 const auth = getAuth();
 const rateLimitConfig: FirebaseFunctionsRateLimiterConfiguration = {
-  maxCalls: 10,
-  periodSeconds: 15,
+  maxCalls: 500,
+  periodSeconds: 60,
 };
 
 app.set("trust proxy", true);

@@ -3,8 +3,8 @@
   "version": "v0.0.0",
   "scripts": {
     "test": "mocha -r ./node_modules/ts-node/register test/*",
-    "emulators": "firebase emulators:start --project demo-test",
-    "test:ci": "firebase emulators:exec --project demo-test 'yarn test'",
+    "test:emulators": "yarn build && firebase emulators:start --project demo-test",
+    "test:ci": "yarn build && firebase emulators:exec --project demo-test 'yarn test'",
     "format": "eslint --fix --ext .js,.ts .",
     "lint": "eslint --ext .js,.ts .",
     "build": "tsc",
@@ -18,7 +18,7 @@
   "engines": {
     "node": "16"
   },
-  "main": "lib/index.js",
+  "main": "lib/functions/src/index.js",
   "dependencies": {
     "ethers": "^5.6.9",
     "express": "^4.18.1",

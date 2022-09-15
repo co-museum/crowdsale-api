@@ -48,6 +48,7 @@ export class Client {
   ) {
     try {
       Params.check(req.params);
+      const address = req.params.address.toLowerCase();
       const saleSnapshot = await this.db.collection(saleCollection).doc(saleDoc).get();
       const sale = saleSnapshot.data() as Sale;
       Sale.check(sale);
@@ -65,7 +66,7 @@ export class Client {
 
       let proof: Proof;
       await this.db.collection(sale.batch)
-          .where("addresses", "array-contains", req.params.address)
+          .where("addresses", "array-contains", address)
           .get()
           .then((result) => {
             result.forEach((whitelistDoc) => {
@@ -80,7 +81,7 @@ export class Client {
                   allocation: whitelist.allocation,
                   tiercode: whitelist.tierCode,
                   // NOTE: computationally expensive but we shouldn't have users in too many whitelists anw
-                  proof: getProof(req.params.address, whitelist.addresses),
+                  proof: getProof(address, whitelist.addresses),
                   whitelistIdx: whitelistIds.indexOf(whitelistDoc.id),
                 };
               }
